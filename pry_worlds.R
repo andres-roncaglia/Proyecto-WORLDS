@@ -29,6 +29,8 @@ library(formattable)
 # OTRO
 # https://shiny.posit.co/r/gallery/ # Multiples opciones de shiny apps
 # https://shiny.posit.co/r/gallery/advanced-shiny/download-knitr-reports/ # Imprime un reporte
+# https://shiny.posit.co/r/gallery/interactive-plots/plot-interaction-advanced/ # Selecciona elementos de un grafico
+# https://shiny.posit.co/r/gallery/dynamic-user-interface/dynamic-ui/  # Cambiar de objeto segun la opcion sin un if
 # https://riot-api-libraries.readthedocs.io/en/latest/ddragon.html  #data?
 # https://shinyapps.dreamrs.fr/shinyWidgets/  # Widgets de shiny
 
@@ -91,6 +93,9 @@ ui <- dashboardPage(
                menuSubItem("Campeones", tabName = "tab_acp_campeones")),
       
       menuItem("Histogramas", tabName = "histo", icon = icon("chart-column")),
+      
+      menuItem("Llaves del torneo", tabName = "torneo", icon = icon("trophy")),
+      
       
       menuItem("Leaguepedia", icon = icon("link"), badgeLabel = "Fuente", badgeColor = "blue", href = "https://lol.fandom.com/wiki/2023_Season_World_Championship/Main_Event"),
       
@@ -157,9 +162,9 @@ ui <- dashboardPage(
         ),
         
         fluidRow(box(
-          width = NULL,
+          width = 11,
           column(3, h4("Lugar para imagen")),
-          column(9, DTOutput("prueba"))
+          column(9, DTOutput("individual"))
           ))
         
       ),
@@ -311,10 +316,10 @@ ui <- dashboardPage(
         )
       ),
       
-      ## Configuraciones esteticas -------------
+      ## Torneo -------------
       
       tabItem(
-        tabName = "config_esteticas",
+        tabName = "torneo",
         
       )
       
@@ -455,7 +460,7 @@ server <- function(input, output, session) {
   observe({
     req(input$tabla_datos_rows_selected)
     fila_selecta <- reac_datos_opciones()[input$tabla_datos_rows_selected,]
-    output$prueba <- renderDT({fila_selecta})
+    output$individual <- renderDT({fila_selecta})
   })
   
   
