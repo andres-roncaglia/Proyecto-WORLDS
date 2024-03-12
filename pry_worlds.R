@@ -12,6 +12,9 @@ library(DT)
 library(plotly)
 library(formattable)
 
+# Git Hub: https://github.com/andres-roncaglia/Proyecto-WORLDS
+
+
 # Links con informacion ---------------------
 
 # DATATABLE
@@ -34,9 +37,9 @@ library(formattable)
 
 # Carga de datos ---------
 
-matches <- read_xlsx("F:/Users/iCentro/Desktop/Escritorio/Facu/Analisis exploratorio de datos (Shiny)/Proyecto Worlds 2023/matches.xlsx")
-players <- read_xlsx("F:/Users/iCentro/Desktop/Escritorio/Facu/Analisis exploratorio de datos (Shiny)/Proyecto Worlds 2023/players.xlsx")
-champs <- read_xlsx("F:/Users/iCentro/Desktop/Escritorio/Facu/Analisis exploratorio de datos (Shiny)/Proyecto Worlds 2023/champs.xlsx")
+matches <- read_xlsx("F:/Users/iCentro/Desktop/Escritorio/Facu/Analisis exploratorio de datos (Shiny)/Proyecto-WORLDS/matches.xlsx")
+players <- read_xlsx("F:/Users/iCentro/Desktop/Escritorio/Facu/Analisis exploratorio de datos (Shiny)/Proyecto-WORLDS/players.xlsx")
+champs <- read_xlsx("F:/Users/iCentro/Desktop/Escritorio/Facu/Analisis exploratorio de datos (Shiny)/Proyecto-WORLDS/champs.xlsx")
 #
 
 # matches <- read_xlsx("/cloud/project/Proyecto Worlds 2023/matches.xlsx")
@@ -123,9 +126,7 @@ ui <- dashboardPage(
         
         tabName = "data",
         
-        fluidRow(h2("Archivo de datos"), br(),
-                 
-                 column(1,
+        fluidRow(column(1,
                         dropdown(
                           tags$h3("Opciones"),
                           circle = F,
@@ -150,12 +151,16 @@ ui <- dashboardPage(
                         ),
                  ),
                  
-                 column(9,
+                 column(10,
                         
                         DTOutput("tabla_datos"))
         ),
         
-        fluidRow(DTOutput("prueba"))
+        fluidRow(box(
+          width = NULL,
+          column(3, h4("Lugar para imagen")),
+          column(9, DTOutput("prueba"))
+          ))
         
       ),
       
@@ -200,16 +205,16 @@ ui <- dashboardPage(
                             solidHeader = T)
                  ),
                  
-                 column(2,
+                 column(3,
                         h3("Cargas de las CPs:"),
                         solidHeader = T,
                         DTOutput("eig_jugadores")
                  ),
                  
-                 column(4,
-                        fluidRow(valueBoxOutput("prct_eig_jugadores")),
-                        fluidRow(valueBoxOutput("prct_eig_jugadores2")),
-                        fluidRow(valueBoxOutput("prct_eig_jugadores3")))
+                 column(3,
+                        fluidRow(valueBoxOutput("prct_eig_jugadores", width = 11)),
+                        fluidRow(valueBoxOutput("prct_eig_jugadores2", width = 11)),
+                        fluidRow(valueBoxOutput("prct_eig_jugadores3", width = 11)))
                  
                  
                  
@@ -260,14 +265,14 @@ ui <- dashboardPage(
                             solidHeader = T)
                  ),
                  
-                 column(2,
+                 column(3,
                         h3("Cargas de las CPs:"),
                         DTOutput("eig_campeones")),
                  
-                 column(4,
-                        fluidRow(valueBoxOutput("prct_eig_campeones")),
-                        fluidRow(valueBoxOutput("prct_eig_campeones2")),
-                        fluidRow(valueBoxOutput("prct_eig_campeones3")))
+                 column(3,
+                        fluidRow(valueBoxOutput("prct_eig_campeones", width = 11)),
+                        fluidRow(valueBoxOutput("prct_eig_campeones2", width = 11)),
+                        fluidRow(valueBoxOutput("prct_eig_campeones3", width = 11)))
                  
                  
                  
@@ -571,8 +576,8 @@ server <- function(input, output, session) {
     }
     
     valueBox(
-      subtitle = paste0("Variancia explicada por CP", reac_ejex_jugadores()),
-      value = round(acp_jugadores()$eig[reac_ejex_jugadores(),2], 2),
+      subtitle = paste0("Variancia explicada por la Componente principal Nº ", reac_ejex_jugadores()),
+      value = paste(round(acp_jugadores()$eig[reac_ejex_jugadores(),2], 2), "%"),
       icon = icon("percent"),
       color = color_autovalor
     )
@@ -586,8 +591,8 @@ server <- function(input, output, session) {
     }
     
     valueBox(
-      subtitle = paste0("Variancia explicada por CP", reac_ejey_jugadores()),
-      value = round(acp_jugadores()$eig[reac_ejey_jugadores(),2], 2),
+      subtitle = paste0("Variancia explicada por la Componente principal Nº ", reac_ejey_jugadores()),
+      value = paste(round(acp_jugadores()$eig[reac_ejey_jugadores(),2], 2), "%"),
       icon = icon("percent"),
       color = color_autovalor2
     )
@@ -596,8 +601,10 @@ server <- function(input, output, session) {
   
   output$prct_eig_jugadores3 <- renderValueBox({
     valueBox(
-      subtitle = "Variancia explicada por  las CPs",
-      value = round(acp_jugadores()$eig[reac_ejex_jugadores(),2] + acp_jugadores()$eig[reac_ejey_jugadores(),2], 2),
+      subtitle = "Variancia explicada por las Componentes Principales",
+      value = paste(
+        round(acp_jugadores()$eig[reac_ejex_jugadores(),2] + acp_jugadores()$eig[reac_ejey_jugadores(),2], 2),
+        "%"),
       icon = icon("percent"),
       color = "light-blue"
     )
@@ -722,8 +729,8 @@ server <- function(input, output, session) {
     }
     
     valueBox(
-      subtitle = paste0("Variancia explicada por CP", reac_ejex_campeones()),
-      value = round(acp_campeones$eig[reac_ejex_campeones(),2], 2),
+      subtitle = paste0("Variancia explicada por la Componente principal Nº ", reac_ejex_campeones()),
+      value = paste(round(acp_campeones$eig[reac_ejex_campeones(),2], 2), "%"),
       icon = icon("percent"),
       color = color_autovalor
     )
@@ -737,8 +744,8 @@ server <- function(input, output, session) {
     }
     
     valueBox(
-      subtitle = paste0("Variancia explicada por CP", reac_ejey_campeones()),
-      value = round(acp_campeones$eig[reac_ejey_campeones(),2], 2),
+      subtitle = paste0("Variancia explicada por la Componente principal Nº ", reac_ejey_campeones()),
+      value = paste(round(acp_campeones$eig[reac_ejey_campeones(),2], 2), "%"),
       icon = icon("percent"),
       color = color_autovalor2
     )
@@ -747,8 +754,8 @@ server <- function(input, output, session) {
   
   output$prct_eig_campeones3 <- renderValueBox({
     valueBox(
-      subtitle = "Variancia explicada por  las CPs",
-      value = round(acp_campeones$eig[reac_ejex_campeones(),2] + acp_campeones$eig[reac_ejey_campeones(),2], 2),
+      subtitle = "Variancia explicada por las Componentes Principales",
+      value = paste(round(acp_campeones$eig[reac_ejex_campeones(),2] + acp_campeones$eig[reac_ejey_campeones(),2], 2), "%"),
       icon = icon("percent"),
       color = "light-blue"
     )
