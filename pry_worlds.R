@@ -33,27 +33,28 @@ library(formattable)
 # https://shiny.posit.co/r/gallery/dynamic-user-interface/dynamic-ui/  # Cambiar de objeto segun la opcion sin un if
 # https://riot-api-libraries.readthedocs.io/en/latest/ddragon.html  #data?
 # https://shinyapps.dreamrs.fr/shinyWidgets/  # Widgets de shiny
+# https://shiny.posit.co/r/getstarted/shiny-basics/lesson4/ # Opciones de reactividad
 
 
 
 
 # Carga de datos ---------
 
-matches <- read_xlsx("F:/Users/iCentro/Desktop/Escritorio/Facu/Analisis exploratorio de datos (Shiny)/Proyecto-WORLDS/matches.xlsx")
-players <- read_xlsx("F:/Users/iCentro/Desktop/Escritorio/Facu/Analisis exploratorio de datos (Shiny)/Proyecto-WORLDS/players.xlsx")
-champs <- read_xlsx("F:/Users/iCentro/Desktop/Escritorio/Facu/Analisis exploratorio de datos (Shiny)/Proyecto-WORLDS/champs.xlsx")
+# matches <- read_xlsx("F:/Users/iCentro/Desktop/Escritorio/Facu/Analisis exploratorio de datos (Shiny)/Proyecto-WORLDS/matches.xlsx")
+# players <- read_xlsx("F:/Users/iCentro/Desktop/Escritorio/Facu/Analisis exploratorio de datos (Shiny)/Proyecto-WORLDS/players.xlsx")
+# champs <- read_xlsx("F:/Users/iCentro/Desktop/Escritorio/Facu/Analisis exploratorio de datos (Shiny)/Proyecto-WORLDS/champs.xlsx")
 #
 
-# matches <- read_xlsx("/cloud/project/Proyecto Worlds 2023/matches.xlsx")
-# players <- read_xlsx("/cloud/project/Proyecto Worlds 2023/players.xlsx")
-# champs <- read_xlsx("/cloud/project/Proyecto Worlds 2023/champs.xlsx")
+matches <- read_xlsx("/cloud/project/matches.xlsx")
+players <- read_xlsx("/cloud/project/players.xlsx")
+champs <- read_xlsx("/cloud/project/champs.xlsx")
 
 
 
 champs <- champs %>% mutate(DMG = DMG*1000,
                             photo_name = case_when(Champion == "Kha'Zix" ~ "Khazix",Champion == "Bel'Veth" ~ "Belveth",Champion == "LeBlanc" ~ "Leblanc",Champion == "Kai'Sa" ~ "Kaisa",Champion == "Wukong" ~ "MonkeyKing",Champion == "Renata Glasc" ~ "Renata",T ~ str_replace_all(Champion, "[ ']", "")),
                             Pic = paste0("<img src=\"",
-                                         paste0("https://ddragon.leagueoflegends.com/cdn/",matches$P[1],".1/img/champion/",photo_name,".png"),
+                                         paste0("https://ddragon.leagueoflegends.com/cdn/3.19.1/img/champion/",photo_name,".png"),
                                          "\" height=\"30\" data-toggle=\"tooltip\" data-placement=\"middle\" title=\"",
                                          Champion,
                                          "\"></img>"
@@ -163,16 +164,7 @@ ui <- dashboardPage(
         
         
         #### Tabla informativa del dato seleccionado en la tabla --------------
-        fluidRow(box(
-          width = 11,
-          column(2, h4("Lugar para imagen")),
-          column(10, width = NULL, background = "blue",
-                 box(
-                   
-                   DTOutput("individual")
-                     
-                     ))
-          ))
+        uiOutput("individual")
         
       ),
       
@@ -462,13 +454,118 @@ server <- function(input, output, session) {
   
   
   
-  ## Reactivo estadisticas extras del jugador ------------------------
+  ## Reactivo estadisticas extras ------------------------
   
   observe({
     req(input$tabla_datos_rows_selected)
     fila_selecta <- reac_datos_opciones()[input$tabla_datos_rows_selected,]
     
-    output$individual <- renderDT({fila_selecta}) 
+    # Objetos para cuadro jugadores
+    
+    campeones_jugados <- nrow(filter(matches, BTP == fila_selecta$PLY | BJP == fila_selecta$PLY | BMP == fila_selecta$PLY | BAP == fila_selecta$PLY | BSP == fila_selecta$PLY | RTP == fila_selecta$PLY | RJP == fila_selecta$PLY | RMP == fila_selecta$PLY | RAP == fila_selecta$PLY | RSP == fila_selecta$PLY))
+    
+    
+    output$individual <- renderUI({
+      
+      if (is.null(input$tabla_datos_rows_selected) & (input$datos_opciones == "Jugadores" | input$datos_opciones == "Campeones")) {
+        return()
+        }
+      
+      switch (input$datos_opciones,
+              
+              "Jugadores" = fluidRow(box(
+                width = 11,
+                column(2, h4("Lugar para imagen")),
+                column(10, box(
+                  width = NULL, background = "blue",
+                  
+                  #### Diseño caja datos extra jugadores -------------------
+                  
+                  column(6, 
+                         fluidRow(h4(paste0("Cantidad de campeones jugados: ",campeones_jugados))),
+                         
+                         fluidRow(h4("Campeon mas jugado:")),
+                         
+                         fluidRow(h4("Posición:"))
+                         ),
+                  
+                  
+                  column(6, 
+                         fluidRow(h4("Equipo:")),
+                         
+                         fluidRow(h4("Partidas ganadas:")),
+                         
+                         fluidRow(h4("Instancia alcanzada:")),
+                         
+                         fluidRow(h4("Diferencia mas amplia de oro de su equipo:"))
+                         )
+                  
+                ))
+              )),
+              
+              
+              "Campeones" = fluidRow(box(
+                width = 11,
+                column(2, h4("Lugar para imagen")),
+                column(10, box(
+                  width = NULL, background = "blue",
+                  
+                  #### Diseño caja datos extra campeones -------------------
+                  
+                  column(6, 
+                         fluidRow(h4("Cantidad de jugadores que lo usaron:")),
+                         
+                         fluidRow(h4("Más jugado por:")),
+                         
+                         fluidRow(h4("Posición más frecuente:"))
+                         ),
+                  
+                  
+                  column(6, 
+                         fluidRow(h4("Cantidad de partidas:")),
+                         
+                         fluidRow(h4("Cantidad de baneos:")),
+                         
+                         fluidRow(h4("Presencia en el torneo:")),
+                         
+                         fluidRow(h4("Más acompañado por:"))
+                         )
+                  
+                ))
+              )),
+              
+              
+              "Partidas" = fluidRow(box(
+                width = 11,
+                column(2, h4("Lugar para imagen")),
+                column(10, box(
+                  width = NULL, background = "blue",
+                  
+                  #### Diseño caja datos extra partidas -------------------
+                  
+                  column(6, 
+                         fluidRow(h4("Campeon mas jugado:")),
+                         
+                         fluidRow(h4("Equipo campeón:")),
+                         
+                         fluidRow(h4("Partida màs larga:"))
+                         ),
+                  
+                  
+                  column(6, 
+                         fluidRow(h4("Partida con mas asesinatos:")),
+                         
+                         fluidRow(h4("Mayor diferencia de oro al finalizar una partida:")),
+                         
+                         fluidRow(h4("Dupla más jugada:"))
+                         )
+                  
+                ))
+              ))
+              
+              )
+      
+    }) 
     
   })
   
