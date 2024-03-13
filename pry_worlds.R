@@ -161,10 +161,17 @@ ui <- dashboardPage(
                         DTOutput("tabla_datos"))
         ),
         
+        
+        #### Tabla informativa del dato seleccionado en la tabla --------------
         fluidRow(box(
           width = 11,
-          column(3, h4("Lugar para imagen")),
-          column(9, DTOutput("individual"))
+          column(2, h4("Lugar para imagen")),
+          column(10, width = NULL, background = "blue",
+                 box(
+                   
+                   DTOutput("individual")
+                     
+                     ))
           ))
         
       ),
@@ -335,7 +342,7 @@ ui <- dashboardPage(
 
 server <- function(input, output, session) {
   
-  # Reactivo tema app ---------
+  ## Reactivo tema app ---------
   
   observeEvent(input$skin_color, {
     session$sendCustomMessage("change_skin", paste0("skin-", input$skin_color))
@@ -422,12 +429,12 @@ server <- function(input, output, session) {
     # Definimos la explicacion de las columnas segun la base seleccionada
     if (input$datos_opciones == "Jugadores") {nombres_columnas <- c("Posición", "Equipo", "Jugador", "Partidas jugadas", "Partidas ganadas", "Partidas perdidas", "Razón de partidas ganadas", "Asesinatos", "Muertes", "Asistencias", "KDA", "Subditos farmeados", "Subditos farmeados", "Oro", "Oro por minuto", "Daño", "Daño por minuto", "Participación de asesinatos", "Aportes de asesinatos a su equipo", "Aporte de oro a su equipo", "Campeones jugados")
     } else if (input$datos_opciones == "Campeones") {nombres_columnas <- c("Foto del Campeón","Campeón", "Partidas jugadas", "Cantidad de jugadores que lo usaron", "Partidas ganadas", "Partidas perdidas", "Razón de partidas ganadas", "Asesinatos", "Muertes", "Asistencias", "KDA", "Subditos farmeados", "Subditos farmeados", "Oro", "Oro por minuto", "Daño", "Daño por minuto", "Participación de asesinatos", "Aportes de asesinatos a su equipo", "Aporte de oro a su equipo")
-    } else if (input$datos_opciones == "Partidas") {nombres_columnas <- c("Fecha", "Parche", "Equipo del lado azul", "Equipo del lado rojo", "Ganador", "Baneados por azul", "Baneados por rojo", "Campeon Top equipo azul","Campeon Jungla equipo azul","Campeon Mid equipo azul","Campeon ADC equipo azul","Campeon Soporte equipo azul", "Campeon Top equipo rojo","Campeon Jungla equipo rojo","Campeon Mid equipo rojo","Campeon ADC equipo rojo","Campeon Soporte equipo rojo", "Jugador Top equipo azul","Jugador Jungla equipo azul","Jugador Mid equipo azul","Jugador ADC equipo azul","Jugador Soporte equipo azul", "Jugador Top equipo rojo","Jugador Jungla equipo rojo","Jugador Mid equipo rojo","Jugador ADC equipo rojo","Jugador Soporte equipo rojo", "Duración de la partida", "Oro del equipo azul", "Asesinatos del equipo azul", "Torres derribadas por el equipo azul", "Dragones del equipo azul", "Barones del equipo azul", "Heraldos del equipo azul", "Oro del equipo rojo", "Asesinatos del equipo rojo", "Torres derribadas por el equipo rojo", "Dragones del equipo rojo", "Barones del equipo rojo", "Heraldos del equipo rojo")}
+    } else if (input$datos_opciones == "Partidas") {nombres_columnas <- c("Fecha", "Etapa del torneo", "Equipo del lado azul", "Equipo del lado rojo", "Ganador", "Primer ban del equipo azul", "Segundo ban del equipo azul", "Tercer ban del equipo azul", "Cuarto ban del equipo azul", "Quinto ban del equipo azul", "Primer ban del equipo rojo", "Segundo ban del equipo rojo", "Tercer ban del equipo rojo", "Cuarto ban del equipo rojo", "Quinto ban del equipo rojo", "Campeon Top equipo azul","Campeon Jungla equipo azul","Campeon Mid equipo azul","Campeon ADC equipo azul","Campeon Soporte equipo azul", "Campeon Top equipo rojo","Campeon Jungla equipo rojo","Campeon Mid equipo rojo","Campeon ADC equipo rojo","Campeon Soporte equipo rojo", "Jugador Top equipo azul","Jugador Jungla equipo azul","Jugador Mid equipo azul","Jugador ADC equipo azul","Jugador Soporte equipo azul", "Jugador Top equipo rojo","Jugador Jungla equipo rojo","Jugador Mid equipo rojo","Jugador ADC equipo rojo","Jugador Soporte equipo rojo", "Duración de la partida", "Oro del equipo azul", "Asesinatos del equipo azul", "Torres derribadas por el equipo azul", "Dragones del equipo azul", "Barones del equipo azul", "Heraldos del equipo azul", "Oro del equipo rojo", "Asesinatos del equipo rojo", "Torres derribadas por el equipo rojo", "Dragones del equipo rojo", "Barones del equipo rojo", "Heraldos del equipo rojo")}
     
     tabla_datos <- reac_datos_opciones() %>%
       datatable(selection = "single",escape = F, options = list(pageLength = 10,
                                                                 scrollX = T,
-                                                                scrollY = "450px",
+                                                                scrollY = "400px",
                                                                 paging = F,
                                                                 scrollCollapse = T),
                 # Con lo siguiente le damos una explicacion a las columnas al pasar el mouse por encima
@@ -460,7 +467,9 @@ server <- function(input, output, session) {
   observe({
     req(input$tabla_datos_rows_selected)
     fila_selecta <- reac_datos_opciones()[input$tabla_datos_rows_selected,]
-    output$individual <- renderDT({fila_selecta})
+    
+    output$individual <- renderDT({fila_selecta}) 
+    
   })
   
   
@@ -833,6 +842,8 @@ shinyApp(ui, server)
 # Buscar rol del campeon en el ACP
 
 # Seleccionar un campeon o jugador en la tabla y devolver estadisticas (campeon mas jugado, Mayor cantidad de asesinatos en una partida, Nivel del torneo al que llego, etc)
+# Tabla de partidas seleccionar parejas de posiciones y devolver las parejas mas jugadas
+
 
 # Agregar titulos a los histogramas
 
