@@ -10,6 +10,7 @@ library(ggplot2)
 library(FactoMineR)
 library(DT)
 library(plotly)
+library(DescTools)
 library(formattable)
 
 # Git Hub: https://github.com/andres-roncaglia/Proyecto-WORLDS
@@ -40,21 +41,21 @@ library(formattable)
 
 # Carga de datos ---------
 
-# matches <- read_xlsx("F:/Users/iCentro/Desktop/Escritorio/Facu/Analisis exploratorio de datos (Shiny)/Proyecto-WORLDS/matches.xlsx")
-# players <- read_xlsx("F:/Users/iCentro/Desktop/Escritorio/Facu/Analisis exploratorio de datos (Shiny)/Proyecto-WORLDS/players.xlsx")
-# champs <- read_xlsx("F:/Users/iCentro/Desktop/Escritorio/Facu/Analisis exploratorio de datos (Shiny)/Proyecto-WORLDS/champs.xlsx")
-#
+matches <- read_xlsx("F:/Users/iCentro/Desktop/Escritorio/Facu/Analisis exploratorio de datos (Shiny)/Proyecto-WORLDS/matches.xlsx")
+players <- read_xlsx("F:/Users/iCentro/Desktop/Escritorio/Facu/Analisis exploratorio de datos (Shiny)/Proyecto-WORLDS/players.xlsx")
+champs <- read_xlsx("F:/Users/iCentro/Desktop/Escritorio/Facu/Analisis exploratorio de datos (Shiny)/Proyecto-WORLDS/champs.xlsx")
 
-matches <- read_xlsx("/cloud/project/matches.xlsx")
-players <- read_xlsx("/cloud/project/players.xlsx")
-champs <- read_xlsx("/cloud/project/champs.xlsx")
+
+# matches <- read_xlsx("/cloud/project/matches.xlsx")
+# players <- read_xlsx("/cloud/project/players.xlsx")
+# champs <- read_xlsx("/cloud/project/champs.xlsx")
 
 
 
 champs <- champs %>% mutate(DMG = DMG*1000,
                             photo_name = case_when(Champion == "Kha'Zix" ~ "Khazix",Champion == "Bel'Veth" ~ "Belveth",Champion == "LeBlanc" ~ "Leblanc",Champion == "Kai'Sa" ~ "Kaisa",Champion == "Wukong" ~ "MonkeyKing",Champion == "Renata Glasc" ~ "Renata",T ~ str_replace_all(Champion, "[ ']", "")),
                             Pic = paste0("<img src=\"",
-                                         paste0("https://ddragon.leagueoflegends.com/cdn/3.19.1/img/champion/",photo_name,".png"),
+                                         paste0("https://ddragon.leagueoflegends.com/cdn/13.19.1/img/champion/",photo_name,".png"),
                                          "\" height=\"30\" data-toggle=\"tooltip\" data-placement=\"middle\" title=\"",
                                          Champion,
                                          "\"></img>"
@@ -462,14 +463,33 @@ server <- function(input, output, session) {
     
     # Objetos para cuadro jugadores
     
-    campeones_jugados <- nrow(filter(matches, BTP == fila_selecta$PLY | BJP == fila_selecta$PLY | BMP == fila_selecta$PLY | BAP == fila_selecta$PLY | BSP == fila_selecta$PLY | RTP == fila_selecta$PLY | RJP == fila_selecta$PLY | RMP == fila_selecta$PLY | RAP == fila_selecta$PLY | RSP == fila_selecta$PLY))
+    if (input$datos_opciones == "Jugadores") {
+      posicion_jugador <- fila_selecta$POS
+      
+      campeon_mas_jugado <- NULL
+      partidas_jugador <- matches[which(matches[,2:ncol(matches)] == fila_selecta$PLY, arr.ind = T)[,1],]
+      for (i in 1:nrow(partidas_jugador)) {
+        fila <- as.numeric(which(matches[,2:ncol(matches)] == fila_selecta$PLY, arr.ind = T)[i,1])
+        
+        columna <- str_replace(colnames(matches)[as.numeric(which(matches[,2:ncol(matches)] == fila_selecta$PLY, arr.ind = T)[i,2])+1], "P", "C")
+        
+        campeon_mas_jugado <- c(campeon_mas_jugado, 
+                                as.character(matches[fila,columna])
+        )
+        #hacerlo un texto
+        campeon_mas_jugado <- Mode(campeon_mas_jugado)
+      }
+      
+      
+      
+    }
     
     
     output$individual <- renderUI({
       
       if (is.null(input$tabla_datos_rows_selected) & (input$datos_opciones == "Jugadores" | input$datos_opciones == "Campeones")) {
         return()
-        }
+      }
       
       switch (input$datos_opciones,
               
@@ -482,11 +502,13 @@ server <- function(input, output, session) {
                   #### Diseño caja datos extra jugadores -------------------
                   
                   column(6, 
-                         fluidRow(h4(paste0("Cantidad de campeones jugados: ",campeones_jugados))),
+                         fluidRow(h4(paste0("Cantidad de campeones jugados: "))),
                          
-                         fluidRow(h4("Campeon mas jugado:")),
+                         fluidRow(paste(h4("Campeon mas jugado:", 
+                                           paste(campeon_mas_jugado, collapse = " y "),
+                                           "con", as.numeric(attributes(campeon_mas_jugado)), "partidas" ))),
                          
-                         fluidRow(h4("Posición:"))
+                         fluidRow(h4(paste("Posición:", posicion_jugador)))
                          ),
                   
                   
