@@ -59,7 +59,12 @@ champs <- champs %>% mutate(DMG = DMG*1000,
                                          "\" height=\"30\" data-toggle=\"tooltip\" data-placement=\"middle\" title=\"",
                                          Champion,
                                          "\"></img>"
-                            )) %>% select(Pic, everything(),-photo_name)
+                            ))
+
+photo_name <- champs$photo_name
+names(photo_name) <- champs$Champion
+
+champs <- champs %>% select(Pic,everything(),-photo_name)
 
 players <- players %>% mutate(DMG = as.numeric(str_replace(substr(DMG, 1 ,stop = str_length(DMG) - 1), ",", ".")[1:length(W)])*1000)
 
@@ -156,11 +161,11 @@ ui <- dashboardPage(
                           
                           downloadButton("datos_descarga", "Descarga")
                         ),
-                 ),
-                 
-                 column(10,
-                        
-                        DTOutput("tabla_datos"))
+        ),
+        
+        column(10,
+               
+               DTOutput("tabla_datos"))
         ),
         
         
@@ -461,29 +466,126 @@ server <- function(input, output, session) {
     req(input$tabla_datos_rows_selected)
     fila_selecta <- reac_datos_opciones()[input$tabla_datos_rows_selected,]
     
-    # Objetos para cuadro jugadores
+    ### Objetos para cuadro jugadores --------------------
     
     if (input$datos_opciones == "Jugadores") {
       posicion_jugador <- fila_selecta$POS
+      equipo_jugador <- fila_selecta$TEAM
       
-      campeon_mas_jugado <- NULL
-      partidas_jugador <- matches[which(matches[,2:ncol(matches)] == fila_selecta$PLY, arr.ind = T)[,1],]
+      campeones_jugados <- NULL
+      diferencia_oro <- NULL
+      columna_oro <- NULL
+      equipo_contrario <- NULL
+      partidas_jugador <- matches[which(matches[,-1] == fila_selecta$PLY, arr.ind = T)[,1],]
       for (i in 1:nrow(partidas_jugador)) {
-        fila <- as.numeric(which(matches[,2:ncol(matches)] == fila_selecta$PLY, arr.ind = T)[i,1])
+        fila <- as.numeric(which(matches[,-1] == fila_selecta$PLY, arr.ind = T)[i,1])
         
-        columna <- str_replace(colnames(matches)[as.numeric(which(matches[,2:ncol(matches)] == fila_selecta$PLY, arr.ind = T)[i,2])+1], "P", "C")
+        columna <- str_replace(colnames(matches)[as.numeric(which(matches[,-1] == fila_selecta$PLY, arr.ind = T)[i,2])+1], "P", "C")
         
-        campeon_mas_jugado <- c(campeon_mas_jugado, 
-                                as.character(matches[fila,columna])
+        equipo_contrario <- c(equipo_contrario, matches[fila,c("Blue", "Red")][matches[fila,c("Blue", "Red")] != equipo_jugador])
+        
+        
+        columna_oro[1] <- case_when(
+          as.numeric(which(matches[fila,c("Blue", "Red")] == equipo_jugador, arr.ind = T)[,2]) == 1 ~ "BG",
+          as.numeric(which(matches[fila,c("Blue", "Red")] == equipo_jugador, arr.ind = T)[,2]) == 2 ~ "RG",
+          T ~ "ERROR")
+        columna_oro[2] <- case_when(
+          columna_oro[1] == "RG" ~ "BG",
+          columna_oro[1] == "BG" ~ "RG",
+          T ~ "ERROR")
+        
+        diferencia_oro <- c(diferencia_oro,as.numeric(matches[fila, columna_oro[1]] - matches[fila, columna_oro[2]]))
+        
+        
+        campeones_jugados <- c(campeones_jugados, 
+                               as.character(matches[fila,columna])
         )
-        #hacerlo un texto
-        campeon_mas_jugado <- Mode(campeon_mas_jugado)
       }
       
       
       
+      cant_campeones_jugados <- length(unique(campeones_jugados))
+      
+      # Se hace este IF para que no tire NA cuando un jugador jugo 1 vez su campeon mas jugado
+      if (is.na(Mode(campeones_jugados)[1])) {
+        campeon_mas_jugado <- campeones_jugados
+        attributes(campeon_mas_jugado) <- list(freq = "1")
+      } else {
+        campeon_mas_jugado <- Mode(campeones_jugados)
+      }
+      
+      output$foto_camp_mas_jugado_jugador <- renderUI({
+        tags$img(src = paste0("https://ddragon.leagueoflegends.com/cdn/13.19.1/img/champion/",photo_name[campeon_mas_jugado[1]],".png"),
+                 style = "width:80%")
+      })
+      
+      
+      instancia_alcanzada <- case_when(fila_selecta$TEAM == "T1" ~ "Campeón",
+                                       T ~ arrange(partidas_jugador, desc(Date))$Match[1])
+      diferencia_oro <- c(max(diferencia_oro), equipo_contrario[which.max(diferencia_oro)])
+      duracion_partida_jugador <- c(max(partidas_jugador$Len), equipo_contrario[partidas_jugador$Len == max(partidas_jugador$Len)])
+      
+      
     }
     
+    ### Objetos para cuadro campeones --------------------
+    
+    if (input$datos_opciones == "Campeones") {
+      
+      output$imagen_campeon_cuadro <- renderUI({
+        
+        tags$img(src = paste0("https://ddragon.leagueoflegends.com/cdn/img/champion/splash/",as.character(photo_name[fila_selecta$Champion]),"_0.jpg"),
+                 style="width:100%")
+      })
+      
+      
+      
+      partidas_sin_bans <- select(matches, -c("Date","BanB1", "BanB2", "BanB3", "BanB4", "BanB5", "BanR1", "BanR2", "BanR3", "BanR4", "BanR5"))
+      posiciones_campeon <- NULL
+      jugado_por <- NULL
+      
+      
+      for (i in 1:fila_selecta$Games) {
+        
+        fila <- as.numeric(which(partidas_sin_bans == fila_selecta$Champion, arr.ind = T)[i,1])
+        
+        columna <- colnames(partidas_sin_bans)[as.numeric(which(partidas_sin_bans == fila_selecta$Champion, arr.ind = T)[i,2])]
+        
+        jugado_por <- c(jugado_por, as.character(partidas_sin_bans[fila, str_replace(columna, "C", "P")]))
+        
+        
+        posicion <- case_when(columna == "RTC" | columna == "BTC" ~ "Top",
+                              columna == "RJC" | columna == "BJC" ~ "Jgl",
+                              columna == "RMC" | columna == "BMC" ~ "Mid",
+                              columna == "RAC" | columna == "BAC" ~ "Adc",
+                              columna == "RSC" | columna == "BSC" ~ "Sup",)
+        
+        posiciones_campeon <- c(posiciones_campeon, posicion)
+        
+      }
+      
+      
+      if (is.na(Mode(jugado_por)[1])) {
+        mas_jugado_por <- jugado_por
+        attributes(mas_jugado_por) <- list(freq = "1")
+      } else {
+        mas_jugado_por <- Mode(jugado_por)
+      }
+      
+      output$posiciones_campeon <- renderTable({
+        posiciones_campeon <- as.data.frame(table(unlist(posiciones_campeon))) 
+        colnames(posiciones_campeon) <- c("Pos", "Frec")
+        posiciones_campeon
+      }) 
+      
+    }
+    
+    
+    
+    ### Objetos para cuadro partidas --------------------
+    
+    
+    ### Cajas ---------------- 
     
     output$individual <- renderUI({
       
@@ -493,54 +595,58 @@ server <- function(input, output, session) {
       
       switch (input$datos_opciones,
               
+              #### Diseño caja datos extra jugadores -------------------
+              
               "Jugadores" = fluidRow(box(
                 width = 11,
                 column(2, h4("Lugar para imagen")),
                 column(10, box(
                   width = NULL, background = "blue",
                   
-                  #### Diseño caja datos extra jugadores -------------------
-                  
                   column(6, 
-                         fluidRow(h4(paste0("Cantidad de campeones jugados: "))),
+                         fluidRow(h4(paste("Cantidad de campeones jugados:", cant_campeones_jugados))),
                          
-                         fluidRow(paste(h4("Campeon mas jugado:", 
-                                           paste(campeon_mas_jugado, collapse = " y "),
-                                           "con", as.numeric(attributes(campeon_mas_jugado)), "partidas" ))),
+                         fluidRow(h4("Campeon mas jugado:")),
+                         
+                         fluidRow(column(3, uiOutput("foto_camp_mas_jugado_jugador")), 
+                                  
+                                  column(9, paste(paste(campeon_mas_jugado, collapse = " / "),
+                                                  "con", as.numeric(attributes(campeon_mas_jugado)), "partidas" ))
+                         ),
                          
                          fluidRow(h4(paste("Posición:", posicion_jugador)))
-                         ),
+                  ),
                   
                   
                   column(6, 
-                         fluidRow(h4("Equipo:")),
+                         fluidRow(h4(paste("Equipo:", equipo_jugador))),
                          
-                         fluidRow(h4("Partidas ganadas:")),
+                         fluidRow(h4(paste("Partida mas larga:", duracion_partida_jugador[1], "vs", duracion_partida_jugador[2]))),
                          
-                         fluidRow(h4("Instancia alcanzada:")),
+                         fluidRow(h4(paste("Instancia alcanzada:", instancia_alcanzada))),
                          
-                         fluidRow(h4("Diferencia mas amplia de oro de su equipo:"))
-                         )
+                         fluidRow(h4(paste("Diferencia de oro mas amplia de su equipo:", diferencia_oro[1], "vs", diferencia_oro[2])))
+                  )
                   
                 ))
               )),
               
+              #### Diseño caja datos extra campeones -------------------
               
               "Campeones" = fluidRow(box(
                 width = 11,
-                column(2, h4("Lugar para imagen")),
-                column(10, box(
+                column(3, uiOutput("imagen_campeon_cuadro")),
+                column(9, box(
                   width = NULL, background = "blue",
                   
-                  #### Diseño caja datos extra campeones -------------------
-                  
                   column(6, 
-                         fluidRow(h4("Cantidad de jugadores que lo usaron:")),
+                         fluidRow(h4("Mayor counter:")),
                          
-                         fluidRow(h4("Más jugado por:")),
+                         fluidRow(h4("Más jugado por:",paste(mas_jugado_por, collapse = " / "), "en", attributes(mas_jugado_por), "partidas")),
                          
-                         fluidRow(h4("Posición más frecuente:"))
-                         ),
+                         fluidRow(h4("Posiciones jugadas:"), tableOutput("posiciones_campeon"))
+                         
+                  ),
                   
                   
                   column(6, 
@@ -551,11 +657,12 @@ server <- function(input, output, session) {
                          fluidRow(h4("Presencia en el torneo:")),
                          
                          fluidRow(h4("Más acompañado por:"))
-                         )
+                  )
                   
                 ))
               )),
               
+              #### Diseño caja datos extra partidas -------------------
               
               "Partidas" = fluidRow(box(
                 width = 11,
@@ -563,15 +670,13 @@ server <- function(input, output, session) {
                 column(10, box(
                   width = NULL, background = "blue",
                   
-                  #### Diseño caja datos extra partidas -------------------
-                  
                   column(6, 
                          fluidRow(h4("Campeon mas jugado:")),
                          
                          fluidRow(h4("Equipo campeón:")),
                          
                          fluidRow(h4("Partida màs larga:"))
-                         ),
+                  ),
                   
                   
                   column(6, 
@@ -580,12 +685,12 @@ server <- function(input, output, session) {
                          fluidRow(h4("Mayor diferencia de oro al finalizar una partida:")),
                          
                          fluidRow(h4("Dupla más jugada:"))
-                         )
+                  )
                   
                 ))
               ))
               
-              )
+      )
       
     }) 
     
